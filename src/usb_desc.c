@@ -13,6 +13,14 @@
 #include "usb.h"
 #include "usb_device_hid.h"
 
+#ifndef USBIO_VID
+#define USBIO_VID 0x0BFE /* 0x0BFE=Morphy Planning */
+#endif
+
+#ifndef USBIO_PID
+#define USBIO_PID 0x1000 /* 0x1000=Morphy USB-IO */
+#endif
+
 /**
  * Device Descriptor
  * NOTE:
@@ -27,8 +35,8 @@ const USB_DEVICE_DESCRIPTOR device_dsc = {
     0x00,                   // Subclass code
     0x00,                   // Protocol code
     USB_EP0_BUFF_SIZE,      // Max packet size for EP0, see usb_config.h
-    0x0BFE,                 // Vendor ID: Morphy Planning
-    0x1000,                 // Product ID: Morphy USB-IO
+    USBIO_VID,              // Vendor ID
+    USBIO_PID,              // Product ID
     0x0100,                 // Device release number in BCD format
     0x01,                   // Manufacturer string index
     0x02,                   // Product string index

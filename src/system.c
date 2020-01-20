@@ -1,8 +1,40 @@
 #include "system.h"
 
 //////////////////////////////////////////////////////////////////////
-// PIC16F1459 CONFIG bits
+// CONFIG bits
 //////////////////////////////////////////////////////////////////////
+
+#if defined(_18F14K50)
+
+#pragma config CPUDIV = NOCLKDIV
+#pragma config USBDIV = OFF
+#pragma config FOSC   = HS
+#pragma config PLLEN  = ON
+#pragma config FCMEN  = OFF
+#pragma config IESO   = OFF
+#pragma config PWRTEN = OFF
+#pragma config BOREN  = OFF
+#pragma config BORV   = 30
+#pragma config WDTEN  = OFF
+#pragma config WDTPS  = 32768
+#pragma config MCLRE  = OFF
+#pragma config HFOFST = OFF
+#pragma config STVREN = ON
+#pragma config LVP    = OFF
+#pragma config XINST  = OFF
+#pragma config BBSIZ  = OFF
+#pragma config CP0    = OFF
+#pragma config CP1    = OFF
+#pragma config CPB    = OFF
+#pragma config WRT0   = OFF
+#pragma config WRT1   = OFF
+#pragma config WRTB   = OFF
+#pragma config WRTC   = OFF
+#pragma config EBTR0  = OFF
+#pragma config EBTR1  = OFF
+#pragma config EBTRB  = OFF
+
+#elif defined(_16F1459)
 
 // CONFIG1
 #pragma config FOSC = INTOSC    // Oscillator Selection Bits (INTOSC oscillator: I/O function on CLKIN pin)
@@ -26,6 +58,11 @@
 #pragma config LPBOR = OFF      // Low-Power Brown Out Reset (Low-Power BOR is disabled)
 #pragma config LVP = OFF        // Low-Voltage Programming Enable (High-voltage on MCLR/VPP must be used for programming)
 
+#else
+#error "Unknown chip. Please define config bits."
+
+#endif
+
 /**
  * Initialize framework to given state.
  *
@@ -35,10 +72,11 @@ void
 sys_init(SYSTEM_STATE state) {
     switch (state) {
     case SYSTEM_STATE_USB_START:
+#if defined(_16F1459)
         // Enable active clock tuning for USB full speed with INTOSC
         OSCCON = 0xFC; //HFINTOSC @ 16MHz, 3X PLL, PLL enabled
         ACTCON = 0x90; //Active clock tuning enabled for USB
-
+#endif
         // Port direction (0:output, 1:input)
         TRISA = 0b11001111; // RA[45] for output, others for USR/MCLR/NC
 	TRISB = 0b10101111; // RB[46] for output, others for UART/NC
@@ -46,7 +84,11 @@ sys_init(SYSTEM_STATE state) {
 
         // configure baudrate (= Fosc / (64 * (SPBRG[HL] + 1)))
         SPBRGH = 0;
+#if defined(_16F1459)
         SPBRGL = 25;
+#else
+        SPBRG = 25;
+#endif
         BAUDCONbits.BRG16 = 0;
         TXSTAbits.BRGH = 0;
 

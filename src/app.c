@@ -12,6 +12,11 @@ typedef enum {
     COMMAND_READ_POTENTIOMETER = 0x37
 } CUSTOM_HID_DEMO_COMMANDS;
 
+#if defined(_18F14K50)
+#define HID_CUSTOM_OUT_DATA_BUFFER_ADDRESS @ 0x260
+#define HID_CUSTOM_IN_DATA_BUFFER_ADDRESS @ 0x2A0
+#endif
+
 // USB-RAM buffers with fixed-address allocation for some chips
 #if defined(__XC8)
 unsigned char ReceivedDataBuffer[64] HID_CUSTOM_OUT_DATA_BUFFER_ADDRESS;
@@ -76,22 +81,24 @@ app_run(void) {
         switch (ReceivedDataBuffer[0])				//Look at the data the host sent, to see what kind of application specific command it sent.
         {
             case COMMAND_WRITE_PORT0:
-                // write to RC0..7
+                // write to RC7..0 (MSB to LSB)
                 PORTC = ReceivedDataBuffer[1];
                 break;
             case COMMAND_WRITE_PORT1:
-                // write to RB6, RB4, RA5, RA4
-		PORTBbits.RB6 = 1 & (ReceivedDataBuffer[1] >> 3);
-		PORTBbits.RB4 = 1 & (ReceivedDataBuffer[1] >> 2);
-		PORTAbits.RA5 = 1 & (ReceivedDataBuffer[1] >> 1);
-		PORTAbits.RA4 = 1 & (ReceivedDataBuffer[1]);
+                // write to RA5, RA4, RB6, RB4 (MSB to LSB)
+#if defined(_16F1459)
+		PORTAbits.RA5 = 1 & (ReceivedDataBuffer[1] >> 3);
+		PORTAbits.RA4 = 1 & (ReceivedDataBuffer[1] >> 2);
+#endif
+		PORTBbits.RB6 = 1 & (ReceivedDataBuffer[1] >> 1);
+		PORTBbits.RB4 = 1 & (ReceivedDataBuffer[1]);
                 break;
             case COMMAND_READ_PORT0:
                 if (! HIDTxHandleBusy(USBInHandle)) {
                     // reset buffer in compatible manner
                     memcpy(ToSendDataBuffer, ReceivedDataBuffer, 8);
                     
-                    // read from RC0..7
+                    // read from RC7..0
                     ToSendDataBuffer[1] = LATC;
                     USBInHandle = HIDTxPacket(CUSTOM_DEVICE_HID_EP, (uint8_t *)ToSendDataBuffer, 8);
                 }
@@ -101,14 +108,15 @@ app_run(void) {
                     // reset buffer in compatible manner
                     memcpy(ToSendDataBuffer, ReceivedDataBuffer, 8);
 
-                    // read from RB6, RB4, RA5, RA4
-                    ToSendDataBuffer[1] = (
-		        (0xF0) |
-		        (LATBbits.LATB6 << 3) |
-		        (LATBbits.LATB4 << 2) |
-		        (LATAbits.LATA5 << 1) |
-			(LATAbits.LATA4)
-		    );
+                    // read from RA5, RA4, RB6, RB4
+                    unsigned char val = 0;
+#if defined(_16F1459)
+                    val |= (LATAbits.LATA5 << 3) | (LATAbits.LATA4 << 2);
+#endif
+                    val |= (LATBbits.LATB6 << 1) | (LATBbits.LATB4);
+
+                    ToSendDataBuffer[1] = val;
+
                     USBInHandle = HIDTxPacket(CUSTOM_DEVICE_HID_EP, (uint8_t *)ToSendDataBuffer, 8);
                 }
                 break;
