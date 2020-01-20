@@ -25,7 +25,7 @@ You will at least need to edit followings:
 
 ## Usage
 
-Set an get pin state:
+Set and get pin state:
 ```
 // Set state
 $ usbio -P 0x1000 0b11001010
